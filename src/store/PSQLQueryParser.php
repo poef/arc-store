@@ -30,7 +30,7 @@ final class PSQLQueryParser {
             )
             |
             (?<number>
-                [0-9](\.[0-9]+)?
+                [+-]?[0-9](\.[0-9]+)?
             )
             |
             (?<string>
@@ -40,7 +40,7 @@ final class PSQLQueryParser {
             )
             |
             (?<compare>
-                < | > | = | ~= | \!= | !~ | <>
+                < | > | = | ~= | \!= | !~ | ~! | <>
             )
             |
             (?<parenthesis>
@@ -110,6 +110,7 @@ EOF;
                             $part.='<>';
                         break;
                         case '!~':
+                        case '~!':
                             $part.=' not like ';
                         break;
                     }

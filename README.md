@@ -3,10 +3,10 @@ arc\store: fast schema-free JSON store
 
 [![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/Ariadne-CMS/arc-store/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/Ariadne-CMS/arc-base/?branch=master)
 [![Code Coverage](https://scrutinizer-ci.com/g/Ariadne-CMS/arc-store/badges/coverage.png?b=master)](https://scrutinizer-ci.com/g/Ariadne-CMS/arc-store/)
-[![Latest Stable Version](https://poser.pugx.org/arc/base/v/stable.svg)](https://packagist.org/packages/arc/base)
-[![Total Downloads](https://poser.pugx.org/arc/base/downloads.svg)](https://packagist.org/packages/arc/base)
-[![Latest Unstable Version](https://poser.pugx.org/arc/base/v/unstable.svg)](https://packagist.org/packages/arc/base)
-[![License](https://poser.pugx.org/arc/base/license.svg)](https://packagist.org/packages/arc/base)
+[![Latest Stable Version](https://poser.pugx.org/arc/store/v/stable.svg)](https://packagist.org/packages/arc/store)
+[![Total Downloads](https://poser.pugx.org/arc/store/downloads.svg)](https://packagist.org/packages/arc/store)
+[![Latest Unstable Version](https://poser.pugx.org/arc/store/v/unstable.svg)](https://packagist.org/packages/arc/store)
+[![License](https://poser.pugx.org/arc/store/license.svg)](https://packagist.org/packages/arc/store)
 
 arc\store is part of [ARC - a component library](http://www.github.com/Ariadne-CMS/arc-arc/). 
 

@@ -43,8 +43,12 @@ final class PSQLQueryParser {
                 < | > | = | ~= | \!= | !~ | ~! | <>
             )
             |
-            (?<parenthesis>
-                \( | \)
+            (?<parenthesis_open>
+                \(
+            )
+            |
+            (?<parenthesis_close>
+                \)
             )
 )/x
 EOF;
@@ -69,18 +73,26 @@ EOF;
 
     public function parse($query, $path='')
     {
-        $indent = 0;
-        $part   = '';
-        $sql    = '';
+        $indent   = 0;
+        $part     = '';
+        $sql      = '';
         $position = 0;
+        $expect   = 'name|parenthesis';
+        $iterator = $this->tokens($query);
+        
         foreach( $this->tokens($query) as $token ) {
             $type = key($token);
             list($token, $offset)=$token[$type];
+            if ( !preg_match("/^$expect$/",$type) ) {
+                throw new \Exception('Parse error at '.$position.': expected '.$expect.', got '.$type.': '
+                    .(substr($query,0, $position)." --> ".substr($query,$position)) );
+            }
             switch($type) {
                 case 'number':
                 case 'string':
-                    $sql .= $part.$token;
-                    $part = '';
+                    $sql   .= $part.$token;
+                    $part   = '';
+                    $expect = ['operator','parenthesis_close'];
                 break;
                 case 'name':
                     switch ($token) {
@@ -94,6 +106,7 @@ EOF;
                             $part = "objects.data::json#>'{".str_replace('.',',',$token)."}'";
                         break;
                     }
+                    $expect = 'compare';
                 break;
                 case 'compare':
                     switch( $token ) {
@@ -114,16 +127,24 @@ EOF;
                             $part.=' not like ';
                         break;
                     }
+                    $expect = 'number|string';
                 break;
                 case 'operator':
                     $sql .= ' '.$token.' ';
+                    $expect = 'name|parenthesis_open';
                 break;
-                case 'parenthesis':
+                case 'parenthesis_open':
                     $sql .= $token;
-                    if ( $token == '(' ) {
-                        $indent++;
+                    $indent++;
+                    $expect = 'name|parenthesis_open';                    
+                break;
+                case 'parenthesis_close':
+                    $sql .= $token;
+                    $indent--;
+                    if ( $indent>0 ) {
+                        $expect = 'operator|parenthesis_close';
                     } else {
-                        $indent--;
+                        $expect = 'operator';
                     }
                 break;
             }

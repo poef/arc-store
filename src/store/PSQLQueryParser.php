@@ -103,7 +103,7 @@ EOF;
                             $part = $token;
                         break;
                         default:
-                            $part = "objects.data::json#>'{".str_replace('.',',',$token)."}'";
+                            $part = "objects.data #>> '{".str_replace('.',',',$token)."}'";
                         break;
                     }
                     $expect = 'compare';

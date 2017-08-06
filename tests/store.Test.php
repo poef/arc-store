@@ -10,22 +10,66 @@
      * file that was distributed with this source code.
      */
 
-    class StoreHash extends PHPUnit_Framework_TestCase
+    class TestStore extends PHPUnit_Framework_TestCase
     {
+    	var $db = null;
+    	var $store = null;
+
+		function __construct()
+		{
+			parent::__construct();
+			$this->db = new PDO('pgsql:host=localhost;dbname=arc_store_test;user=auke;password=fropfrop');
+			$this->store = \arc\store::connect($this->db);
+			$this->store->initialize();
+		}
+
 		function testStoreQuery()
 		{
 			$qp = new \arc\store\PSQLQueryParser();
-			//$result = $qp->parse('nodes.path="/"');
-			//$this->assertEquals('nodes.path="/"', $result);
-			$result = $qp->parse('foo.bar="baz"');
-			$this->assertEquals("objects.data #>> '{foo,bar}'=\"baz\"", $result);
+			$result = $qp->parse("nodes.path='/'");
+			$this->assertEquals("select * from nodes where nodes.path='/'", $result);
+			$result = $qp->parse("foo.bar='baz'");
+			$this->assertEquals("select * from nodes where nodes.data #>> '{foo,bar}'='baz'", $result);
 		}
 
-		function testStoreInit()
+
+		function testStoreSave()
 		{
-			$db = new PDO('psql:host=localhost;dbname=auke_store;user=auke;password=fropfrop');
-			$store = \arc\store::connect($db);
-			$store->initialize();
+			$result = $this->store->save(\arc\lambda::prototype([
+				'name' => 'Foo',
+				'foo' => [
+					'bar' => 'Baz',
+					'int' => 10
+				]
+			]), '/foo/');
+			$this->assertTrue($result);
+		}
+
+		function testStoreExists()
+		{
+			$result = $this->store->exists('/foo/');
+			$this->assertTrue($result);
+		}
+
+		function testStoreLs()
+		{
+			$result = $this->store->ls('/');
+			$this->assertContainsOnly('stdClass',$result);
+			$this->assertCount(1, $result);
+		}
+
+		function testStoreFind()
+		{
+			$result = $this->store->find("nodes.path~='/%'");
+			$this->assertContainsOnly('stdClass',$result);
+			$this->assertCount(2, $result);
+			$result = $this->store->find("foo.bar~='Ba%'");
+			$this->assertCount(1, $result);
+		}
+
+		function testEnd()
+		{
+			$this->db->exec('drop table objects cascade');
 		}
 	
     }

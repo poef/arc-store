@@ -7,83 +7,74 @@
 namespace arc\store;
 
 final class PSQLStore {
-    
-    public function __construct($path, $db, $queryParser, $resultBuilder)
+
+    private $db;
+    private $queryParser;
+    private $resultBuilder;
+    private $path;
+
+    public function __construct($db = null, $queryParser = null, $resultBuilder = null,$path = '/')
     {
-        $this->path          = \arc\path::collapse($path);
         $this->db            = $db;
         $this->queryParser   = $queryParser;
         $this->resultBuilder = $resultBuilder;
+        $this->path          = \arc\path::collapse($path);
     }
 
     public function cd($path)
     {
-        return new self( \arc\path::collapse($path, $this->path), $this->db, $this->queryParser );
+        return new self( \arc\path::collapse($path, $this->path), $this->db, $this->queryParser, $this->resultBuilder );
     }
 
     public function find($query)
     {
-        list($query, $params) 
-                = $this->queryParser->parse($query, $this->path);
+        $query = $this->queryParser->parse($query, $this->path);
         $query  = $this->db->prepare($query);
-        $result = $this->db->execute($query, $params);
-        return $this->resultBuilder($result, $this);
+        $result = $query->execute();
+        return call_user_func($this->resultBuilder, $query);
     }
 
     public function get($path='')
     {
         $path   = \arc\path::collapse($path, $this->path);
         $result = null;
-        if ( $this->exists($path) ) {
-            $query  = $this->db->prepare('select nodes.path, nodes.parent, object.data, object.ctime, object.mtime '
-            .'from nodes, object where nodes.object-id=object.object-id and nodes.path=:path');
-            $result = $this->db->execute($query, [':path' => $path ]);
-        }
-        return $this->resultBuilder($result, $this);
+        $query  = $this->db->prepare('select * from nodes where path=:path');
+        $result = $query->execute($query, [':path' => $path ]);
+        return call_user_func($this->resultBuilder, $query);
     }
 
-    public function parents($path='')
+    public function parents($path='', $top='/')
     {
         $path   = \arc\path::collapse($path, $this->path);
         $result = null;
-        if ( $this->exists($path) ) {
-            $query  = '';
-            $result = $this->db->execute($query, [':path' => $path]);
-        }
-        return $this->resultBuilder($result, $this);
+        $query  = $this->db->prepare('select * from nodes where lower(path)=lower(substring(:path,1,length(path))) and lower(path) LIKE lower(:top) order by path');
+        $result = $query->execute([':path' => $path, ':top' => $top.'%']);
+        return call_user_func($this->resultBuilder, $query);
     }
 
     public function ls($path='')
     {
         $path   = \arc\path::collapse($path, $this->path);
         $result = null;
-        if ( $this->exists($path) ) {
-            $query  = '';
-            $result = $this->db->execute($query, [':path' => $path]);
-        }
-        return $this->resultBuilder($result, $this);
+        $query  = $this->db->prepare('select * from nodes where parent=:path');
+        $result = $query->execute([':path' => $path]);
+        return call_user_func($this->resultBuilder, $query);
     }
 
     public function exists($path='')
     {
         $path   = \arc\path::collapse($path, $this->path);
-        $result = false;
-        if ( $this->exists($path) ) {
-            $query  = 'select nodes.id from nodes where path=":path"';
-            $result = $this->db->execute($query, [':path' => $path]);
-        }
-        return (bool)$result;
+        $query  = $this->db->prepare('select count(*) from nodes where path=:path');
+        $result = $query->execute([':path' => $path]);
+        return ($query->fetchColumn(0)>0);
     }
 
-	public function initialize() {
-		try {
-			if ($this->exists('/')) {
-				return false;
-			}
-		} catch(\Exception $e) {
-		}
-		$queries = [];
-		$queries[0] = <<<EOF
+    public function initialize() {
+        if ($this->exists('/')) {
+            return false;
+        }
+        $queries = [];
+        $queries[0] = <<<EOF
 create table objects (
     parent text not null ,
     name   text not null,
@@ -92,36 +83,36 @@ create table objects (
     mtime  timestamp default current_timestamp
 );
 EOF;
-		$queries[1] = "create unique index path on objects ((parent || name || '/'));";
-		$queries[2] = "create unique index lower_path on objects ((lower(parent) || lower(name) || '/' ));";
-		$queries[3] = "create index datagin on objects using gin (data);";
-		$queries[4] = "create view nodes as select (parent || name || '/') as path, * from objects;";
-		foreach ( $queries as $query ) {
-			$result = $this->db->execute($query, []);
-			if (!$result) {
-				return false;
-			}
-		}
-		return $this->save([],'/');
-	}
+        $queries[1] = "create unique index path on objects ((parent || name || '/'));";
+        $queries[2] = "create unique index lower_path on objects ((lower(parent) || lower(name) || '/' ));";
+        $queries[3] = "create index datagin on objects using gin (data);";
+        $queries[4] = "create view nodes as select (parent || name || '/') as path, * from objects;";
+        foreach ( $queries as $query ) {
+            $result = $this->db->exec($query);
+            if ($result===false) {
+                return false;
+            }
+        }
+        return $this->save(\arc\lambda::prototype([
+            'name' => 'Root'
+        ]),'/');
+    }
 
-	public function save($data, $path='') {
+    public function save($data, $path='') {
         $path   = \arc\path::collapse($path, $this->path);
-		$parent = ($path=='/' ? '' : \arc\path::parent($path));
-		$name = ($path=='/' ? '' : dirname($path));
-		$query = "insert into objects (parent, name, data) values(:parent, :name, :data);";
-		return $this->db->execute($query, ['parent' => $parent, 'name' => $name, 'data' => json_serialize($data)]);
-	}
+        $parent = ($path=='/' ? '' : \arc\path::parent($path));
+        $name = ($path=='/' ? '' : basename($path));
+        $query = $this->db->prepare("insert into objects (parent, name, data) values(:parent, :name, :data);");
+        return $query->execute([
+            ':parent' => $parent,
+            ':name'   => $name,
+            ':data'   => json_encode($data)
+        ]);
+    }
 
-	public function delete($path = '') {
+    public function delete($path = '') {
         $path   = \arc\path::collapse($path, $this->path);
-		$parent = ($path=='/' ? '' : \arc\path::parent($path));
-		$name = ($path=='/' ? '' : dirname($path));
-		$query = "delete from objects where parent like ':path%'";
-		if ( $this->db->execute($query, ['path' => $path])) {
-			$query = "delete from objects where parent=:parent and name=:name";
-			return $this->db->execute($query, ['parent' => $parent, 'name' => $name]);
-		}
-		return false;	
-	}
+        $query = $this->db->prepare("delete from nodes where path like :path");
+        return $query->execute([':path' => $path.'%']);
+    }
 }

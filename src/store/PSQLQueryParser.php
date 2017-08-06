@@ -34,7 +34,7 @@ final class PSQLQueryParser {
             )
             |
             (?<string>
-                (?<quote>(?<![\\\\])[\'"])
+                (?<quote>(?<![\\\\])[\'])
                 (?<content>(?:.(?!(?<![\\\\])(?P=quote)))*.?)
                 (?P=quote) 
             )
@@ -96,14 +96,14 @@ EOF;
                 break;
                 case 'name':
                     switch ($token) {
-                        case 'node.path':
-                        case 'node.parent':
-                        case 'object.mtime':
-                        case 'object.ctime':
+                        case 'nodes.path':
+                        case 'nodes.parent':
+                        case 'nodes.mtime':
+                        case 'nodes.ctime':
                             $part = $token;
                         break;
                         default:
-                            $part = "objects.data #>> '{".str_replace('.',',',$token)."}'";
+                            $part = "nodes.data #>> '{".str_replace('.',',',$token)."}'";
                         break;
                     }
                     $expect = 'compare';
@@ -156,7 +156,7 @@ EOF;
             $position -= strlen($token);
             throw new \Exception('parse error at '.$position.': '.(substr($query,0, $position)." --> ".substr($query,$position)));
         } else {
-            return $sql;
+            return "select * from nodes where $sql";
         }
     }
 

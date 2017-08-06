@@ -12,7 +12,24 @@ class store {
 
 	public static function connect($db)
 	{
-		$store = new store\Store($db);
+		$store = new store\PSQLStore(
+			$db, 
+			new store\PSQLQueryParser(), 
+			function($result) {
+				$data = $result->fetchAll(\PDO::FETCH_ASSOC);
+				$tree = array_combine( array_column( $data, 'path'), $data);
+				array_walk(
+					$tree,
+					function(&$value, $path) {
+						$value = (object) $value;
+						$value->data  = json_decode($value->data);
+						$value->ctime = strtotime($value->ctime);
+						$value->mtime = strtotime($value->mtime);
+					}
+				);
+				return $tree;
+			}
+		);
 		\arc\context::push([
 			'arcStore' => $store
 		]);
@@ -22,11 +39,6 @@ class store {
 	public static function disconnect()
 	{
         \arc\context::pop();
-	}
-
-	public static function create()
-	{
-		// create a new database for the store and initialize it
 	}
 
 	public static function cd($path)

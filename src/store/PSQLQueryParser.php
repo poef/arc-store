@@ -78,7 +78,6 @@ EOF;
         $sql      = '';
         $position = 0;
         $expect   = 'name|parenthesis';
-        $iterator = $this->tokens($query);
         
         foreach( $this->tokens($query) as $token ) {
             $type = key($token);

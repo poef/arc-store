@@ -98,7 +98,6 @@ EOF;
         foreach ( $queries as $query ) {
             $result = $this->db->exec($query);
             if ($result===false) {
-                echo "failed query ".$query."\n";
                 return false;
             }
         }

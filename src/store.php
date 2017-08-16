@@ -10,12 +10,21 @@ class store {
         return $context->arcStore;
     }
 
-	public static function connect($db)
+	public static function connect($dsn, $resultHandler=null)
 	{
-		$store = new store\PSQLStore(
-			$db, 
-			new store\PSQLQueryParser(), 
-			function($result) {
+		if (!$resultHandler) {
+			$resultHandler = function($result) {
+				$data = $result->fetch(\PDO::FETCH_ASSOC);
+				while ($data) {
+					$value = (object) $data;
+					$value->data = json_decode($value->data);
+					$value->ctime = strtotime($value->ctime);
+					$value->mtime = strtotime($value->mtime);
+					$path = $value->path;
+					yield $path => $value;
+					$data = $result->fetch(\PDO::FETCH_ASSOC);
+				}
+/*	
 				$data = $result->fetchAll(\PDO::FETCH_ASSOC);
 				$tree = array_combine( array_column( $data, 'path'), $data);
 				array_walk(
@@ -28,7 +37,12 @@ class store {
 					}
 				);
 				return $tree;
-			}
+*/			};
+		}
+		$store = new store\PSQLStore(
+			new \PDO($dsn), 
+			new store\PSQLQueryParser(), 
+			$resultHandler
 		);
 		\arc\context::push([
 			'arcStore' => $store

@@ -155,7 +155,7 @@ EOF;
             $position -= strlen($token);
             throw new \Exception('parse error at '.$position.': '.(substr($query,0, $position)." --> ".substr($query,$position)));
         } else {
-            return "select * from nodes where $sql";
+            return $sql;
         }
     }
 

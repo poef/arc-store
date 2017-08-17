@@ -21,39 +21,38 @@ final class PSQLStore {
         return new self( \arc\path::collapse($path, $this->path), $this->db, $this->queryParser, $this->resultHandler );
     }
 
-    public function find($query)
+    public function find($query, $path='')
     {
-        $query = $this->queryParser->parse($query, $this->path);
-        $query  = $this->db->prepare($query);
-        $result = $query->execute();
-        return call_user_func($this->resultHandler, $query);
+		$path = \arc\path::collapse($path, $this->path);
+		$sql  = $this->queryParser->parse($query, $path);
+        return call_user_func( $this->resultHandler, $sql, [] );
     }
 
     public function get($path='')
     {
         $path   = \arc\path::collapse($path, $this->path);
-        $result = null;
-        $query  = $this->db->prepare('select * from nodes where path=:path');
-        $result = $query->execute($query, [':path' => $path ]);
-        return call_user_func($this->resultHandler, $query);
+        return call_user_func($this->resultHandler, 'path=:path', [':path' => $path]);
     }
 
     public function parents($path='', $top='/')
     {
         $path   = \arc\path::collapse($path, $this->path);
-        $result = null;
-        $query  = $this->db->prepare('select * from nodes where lower(path)=lower(substring(:path,1,length(path))) and lower(path) LIKE lower(:top) order by path');
-        $result = $query->execute([':path' => $path, ':top' => $top.'%']);
-        return call_user_func($this->resultHandler, $query);
+        return call_user_func(
+            $this->resultHandler,
+            'lower(path)=lower(substring(:path,1,length(path))) '
+            . ' and lower(path) LIKE lower(:top) order by path',
+            [':path' => $path, ':top' => $top.'%']
+        );
     }
 
     public function ls($path='')
     {
         $path   = \arc\path::collapse($path, $this->path);
-        $result = null;
-        $query  = $this->db->prepare('select * from nodes where parent=:path');
-        $result = $query->execute([':path' => $path]);
-        return call_user_func($this->resultHandler, $query);
+        return call_user_func(
+			$this->resultHandler,
+            'parent=:path',
+            [':path' => $path]
+        );
     }
 
     public function exists($path='')

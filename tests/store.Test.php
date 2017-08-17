@@ -25,9 +25,9 @@
         {
             $qp = new \arc\store\PSQLQueryParser();
             $result = $qp->parse("nodes.path='/'");
-            $this->assertEquals("select * from nodes where nodes.path='/'", $result);
+            $this->assertEquals("nodes.path='/'", $result);
             $result = $qp->parse("foo.bar='baz'");
-            $this->assertEquals("select * from nodes where nodes.data #>> '{foo,bar}'='baz'", $result);
+            $this->assertEquals("nodes.data #>> '{foo,bar}'='baz'", $result);
         }
 
 

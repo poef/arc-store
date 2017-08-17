@@ -12,9 +12,13 @@ class store {
 
 	public static function connect($dsn, $resultHandler=null)
 	{
+		//FIXME: db / dsn distributed over PSQLStore and resultHandler -> single source needed
+		$db = new \PDO($dsn);
 		if (!$resultHandler) {
-			$resultHandler = function($result) {
-				$data = $result->fetch(\PDO::FETCH_ASSOC);
+			$resultHandler = function($query, $args) use ($db) {
+				$q = $db->prepare('select * from nodes where '.$query);
+				$result = $q->execute($args);
+				$data = $q->fetch(\PDO::FETCH_ASSOC);
 				while ($data) {
 					$value = (object) $data;
 					$value->data = json_decode($value->data);
@@ -22,7 +26,7 @@ class store {
 					$value->mtime = strtotime($value->mtime);
 					$path = $value->path;
 					yield $path => $value;
-					$data = $result->fetch(\PDO::FETCH_ASSOC);
+					$data = $q->fetch(\PDO::FETCH_ASSOC);
 				}
 /*	
 				$data = $result->fetchAll(\PDO::FETCH_ASSOC);
@@ -40,7 +44,7 @@ class store {
 */			};
 		}
 		$store = new store\PSQLStore(
-			new \PDO($dsn), 
+			$db, 
 			new store\PSQLQueryParser(), 
 			$resultHandler
 		);

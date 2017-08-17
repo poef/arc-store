@@ -23,7 +23,7 @@ final class PSQLQueryParser {
      * @return \Generator
      * @throws \Exception
      */
-    private function tokens(string $query)
+    private function tokens($query)
     {
         $token = <<<'EOF'
 /^\s*
@@ -84,7 +84,7 @@ EOF;
      * @return string postgresql 'where' part of the sql query
      * @throws \Exception when a parse error occurs
      */
-    public function parse(string $query)
+    public function parse($query)
     {
         $indent   = 0;
         $part     = '';

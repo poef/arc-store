@@ -13,9 +13,17 @@ final class PSQLQueryParser {
         value    = number | string
         number   = [0-9]* ('.' [0-9]+)?
         string   = (['"]) [^\\1]* \\1
+
+        e.g: "contact.address.street ~= '%Crescent%' and ( name.firstname = 'Foo' or name.lastname = 'Bar')"
     */
 
-    private function tokens($query)
+    /**
+     * yields the tokens in the search query expression
+     * @param string $query
+     * @return \Generator
+     * @throws \Exception
+     */
+    private function tokens(string $query)
     {
         $token = <<<'EOF'
 /^\s*
@@ -71,7 +79,12 @@ EOF;
         }
     }
 
-    public function parse($query, $path='')
+    /**
+     * @param string $query
+     * @return string postgresql 'where' part of the sql query
+     * @throws \Exception when a parse error occurs
+     */
+    public function parse(string $query)
     {
         $indent   = 0;
         $part     = '';

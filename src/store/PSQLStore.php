@@ -8,7 +8,14 @@ final class PSQLStore {
     private $resultHandler;
     private $path;
 
-    public function __construct($db = null, $queryParser = null, $resultHandler = null,$path = '/')
+    /**
+     * PSQLStore constructor.
+     * @param null $db
+     * @param null $queryParser
+     * @param null $resultHandler
+     * @param string $path
+     */
+    public function __construct($db = null, $queryParser = null, $resultHandler = null, $path = '/')
     {
         $this->db            = $db;
         $this->queryParser   = $queryParser;
@@ -16,11 +23,22 @@ final class PSQLStore {
         $this->path          = \arc\path::collapse($path);
     }
 
+    /**
+     * change the current path, returns a new store instance for that path
+     * @param string $path
+     * @return PSQLStore
+     */
     public function cd($path)
     {
-        return new self( \arc\path::collapse($path, $this->path), $this->db, $this->queryParser, $this->resultHandler );
+        return new self( $this->db, $this->queryParser, $this->resultHandler, \arc\path::collapse($path, $this->path) );
     }
 
+    /**
+     * creates sql query for the search query and returns the resulthandler
+     * @param string $query
+     * @param string $path
+     * @return mixed
+     */
     public function find($query, $path='')
     {
 		$path = \arc\path::collapse($path, $this->path);
@@ -28,23 +46,40 @@ final class PSQLStore {
         return call_user_func( $this->resultHandler, $sql, [] );
     }
 
+    /**
+     * get a single object from the store by path
+     * @param string $path
+     * @return mixed
+     */
     public function get($path='')
     {
         $path   = \arc\path::collapse($path, $this->path);
         return call_user_func($this->resultHandler, 'path=:path', [':path' => $path]);
     }
 
+    /**
+     * list all parents, including self, by path, starting from the root
+     * @param string $path
+     * @param string $top
+     * @return mixed
+     */
     public function parents($path='', $top='/')
     {
         $path   = \arc\path::collapse($path, $this->path);
         return call_user_func(
             $this->resultHandler,
+            /** @lang sql */
             'lower(path)=lower(substring(:path,1,length(path))) '
             . ' and lower(path) LIKE lower(:top) order by path',
             [':path' => $path, ':top' => $top.'%']
         );
     }
 
+    /**
+     * list all child objects by path
+     * @param string $path
+     * @return mixed
+     */
     public function ls($path='')
     {
         $path   = \arc\path::collapse($path, $this->path);
@@ -55,6 +90,11 @@ final class PSQLStore {
         );
     }
 
+    /**
+     * returns true if an object with the given path exists
+     * @param string $path
+     * @return bool
+     */
     public function exists($path='')
     {
         $path   = \arc\path::collapse($path, $this->path);
@@ -63,6 +103,10 @@ final class PSQLStore {
         return ($query->fetchColumn(0)>0);
     }
 
+    /**
+     * initialize the postgresql database, if it wasn't before
+     * @return bool|mixed
+     */
     public function initialize() {
         if ($this->exists('/')) {
             return false;
@@ -105,6 +149,12 @@ EOF;
         ]),'/');
     }
 
+    /**
+     * save (insert or update) a single object on the given path
+     * @param $data
+     * @param string $path
+     * @return mixed
+     */
     public function save($data, $path='') {
         $path   = \arc\path::collapse($path, $this->path);
         $parent = ($path=='/' ? '' : \arc\path::parent($path));
@@ -123,9 +173,15 @@ EOF;
         ]);
     }
 
+    /**
+     * remove the object with the given path and all its children
+     * won't remove the root object ever
+     * @param string $path
+     * @return mixed
+     */
     public function delete($path = '') {
         $path   = \arc\path::collapse($path, $this->path);
-        $query = $this->db->prepare("delete from nodes where path like :path");
+        $query = $this->db->prepare("delete from nodes where path like :path and path!='/'");
         return $query->execute([':path' => $path.'%']);
     }
 }

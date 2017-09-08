@@ -9,10 +9,10 @@ final class PSQLQueryParser {
         part     = ( name '.' )* name compare value
         query    = part | part operator part | (' query ')' 
         operator = 'and' | 'or'
-        compare  = '<' | '>' | '=' | '~=' | '!='
+        compare  = '<' | '>' | '=' | '~=' | '!=' | '<>' | '!~'
         value    = number | string
         number   = [0-9]* ('.' [0-9]+)?
-        string   = (['"]) [^\\1]* \\1
+        string   = \' [^\\1]* \'
 
         e.g: "contact.address.street ~= '%Crescent%' and ( name.firstname = 'Foo' or name.lastname = 'Bar')"
     */
@@ -23,9 +23,10 @@ final class PSQLQueryParser {
      * @return \Generator
      * @throws \Exception
      */
+        
     private function tokens($query)
     {
-        $token = <<<'EOF'
+        $token = <<<'REGEX'
 /^\s*
 (
             (?<operator>
@@ -59,17 +60,18 @@ final class PSQLQueryParser {
                 \)
             )
 )/x
-EOF;
+REGEX;
         do {
             $result = preg_match($token, $query, $matches, PREG_OFFSET_CAPTURE);
             if ($result) {
                 $query = substr($query, strlen($matches[0][0]));
+                // todo: swap filters, first remove numeric keys
                 yield array_filter(
                     array_filter($matches, function($match) {
                         return $match[0];
                     }),
                     function($key) {
-                        return !is_numeric($key);
+                        return !is_int($key);
                     }, ARRAY_FILTER_USE_KEY
                 );
             }

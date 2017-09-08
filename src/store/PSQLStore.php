@@ -113,7 +113,7 @@ final class PSQLStore {
         }
         $queries = [];
 //        $queries[] = "create extension pgcrypto;";
-        $queries[] = <<<EOF
+        $queries[0] = <<<SQL
 create table objects (
     id     uuid primary key default gen_random_uuid(),
     parent text not null ,
@@ -123,19 +123,19 @@ create table objects (
     mtime  timestamp default current_timestamp,
     UNIQUE(parent,name)
 );
-EOF;
+SQL;
         $queries[] = "create unique index path on objects ((parent || name || '/'));";
         $queries[] = "create unique index lower_path on objects ((lower(parent) || lower(name) || '/' ));";
         $queries[] = "create index datagin on objects using gin (data);";
         $queries[] = "create view nodes as select (parent || name || '/') as path, * from objects;";
-        $queries[] = <<<EOF
+        $queries[] = <<<SQL
 create table links (
     from_id  uuid references objects(id),
     to_id    uuid references objects(id),
     relation text not null,
     UNIQUE(from_id,to_id)
 );
-EOF;
+SQL;
         $queries[] = "create index link_from on links(from_id);";
         $queries[] = "create index link_to on links(to_id);";
         foreach ( $queries as $query ) {
@@ -144,7 +144,7 @@ EOF;
                 return false;
             }
         }
-        return $this->save(\arc\lambda::prototype([
+        return $this->save(\arc\object::prototype([
             'name' => 'Root'
         ]),'/');
     }

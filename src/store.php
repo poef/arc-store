@@ -37,20 +37,7 @@ final class store {
 					yield $path => $value;
 					$data = $q->fetch(\PDO::FETCH_ASSOC);
 				}
-/*	
-				$data = $result->fetchAll(\PDO::FETCH_ASSOC);
-				$tree = array_combine( array_column( $data, 'path'), $data);
-				array_walk(
-					$tree,
-					function(&$value, $path) {
-						$value = (object) $value;
-						$value->data  = json_decode($value->data);
-						$value->ctime = strtotime($value->ctime);
-						$value->mtime = strtotime($value->mtime);
-					}
-				);
-				return $tree;
-*/			};
+			};
 		}
 		$store = new store\PSQLStore(
 			$db, 

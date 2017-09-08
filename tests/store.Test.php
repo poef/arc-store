@@ -49,12 +49,14 @@
             $this->assertTrue($result);
         }
 
-        function testStoreLs()
-        {
-            $result = iterator_to_array($this->store->ls('/'));
-            $this->assertContainsOnly('stdClass',$result);
-            $this->assertCount(1, $result);
-        }
+		function testStoreLs()
+		{
+			$result = iterator_to_array($this->store->ls('/'));
+			$this->assertContainsOnly('stdClass',$result);
+			$this->assertCount(1, $result);
+			$result = $this->store->cd('/foo/')->ls();
+			$this->assertCount(0, $result);
+		}
 
         function testStoreFind()
         {

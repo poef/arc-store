@@ -7,14 +7,15 @@ final class PSQLQueryParser {
     /*
         query syntax:
         part     = ( name '.' )* name compare value
-        query    = part | part operator part | (' query ')' 
+        query    = part | part operator (not) part | (not) '(' query ')'  
         operator = 'and' | 'or'
-        compare  = '<' | '>' | '=' | '~=' | '!=' | '<>' | '!~'
+        not      = 'not'
+        compare  = '<' | '>' | '=' | '>=' | '<=' | 'like' | 'not like' | '?'
         value    = number | string
         number   = [0-9]* ('.' [0-9]+)?
         string   = \' [^\\1]* \'
 
-        e.g: "contact.address.street ~= '%Crescent%' and ( name.firstname = 'Foo' or name.lastname = 'Bar')"
+        e.g: "contact.address.street like '%Crescent%' and ( name.firstname = 'Foo' or name.lastname = 'Bar')"
     */
 
     /**
@@ -33,6 +34,10 @@ final class PSQLQueryParser {
                 and | or
             )
             |
+            (?<not>
+                not
+            )
+            |
             (?<name>
                 [a-z]+[a-z0-9_-]*
                 (?: \. [a-z]+[a-z0-9_-]* )*
@@ -49,7 +54,7 @@ final class PSQLQueryParser {
             )
             |
             (?<compare>
-                < | > | = | ~= | \!= | !~ | ~! | <>
+                < | > | = | <= | >= | <> | != | like | not like | \?
             )
             |
             (?<parenthesis_open>
@@ -125,32 +130,39 @@ REGEX;
                 case 'compare':
                     switch( $token ) {
                         case '>':
+                        case '>=':
                         case '<':
+                        case '<=':
                         case '=':
-                            $part.=$token;
-                        break;
-                        case '~=':
-                            $part.=' like ';
-                        break;
                         case '<>':
                         case '!=':
-                            $part.='<>';
+                            $part.=$token;
                         break;
-                        case '!~':
-                        case '~!':
+                        case '?':
+                            $part.=$token;
+                            str_replace($part, '#>>', '#>');
+                        break;
+                        case 'like':
+                            $part.=' like ';
+                        break;
+                        case 'not like':
                             $part.=' not like ';
                         break;
                     }
                     $expect = 'number|string';
                 break;
+                case 'not':
+                    $sql .= $token;
+                    $expect = 'name|parenthesis_open';
+                break;
                 case 'operator':
                     $sql .= ' '.$token.' ';
-                    $expect = 'name|parenthesis_open';
+                    $expect = 'name|parenthesis_open|not';
                 break;
                 case 'parenthesis_open':
                     $sql .= $token;
                     $indent++;
-                    $expect = 'name|parenthesis_open';                    
+                    $expect = 'name|parenthesis_open|not';
                 break;
                 case 'parenthesis_close':
                     $sql .= $token;

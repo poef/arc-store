@@ -112,8 +112,9 @@ final class PSQLStore {
             return false;
         }
         $queries = [];
-//        $queries[] = "create extension pgcrypto;";
-        $queries[0] = <<<SQL
+        $queries[] = "begin;";
+        $queries[] = "create extension if not exists pgcrypto;";
+        $queries[] = <<<SQL
 create table objects (
     id     uuid primary key default gen_random_uuid(),
     parent text not null ,
@@ -141,10 +142,13 @@ SQL;
         foreach ( $queries as $query ) {
             $result = $this->db->exec($query);
             if ($result===false) {
+                $this->db->exec('rollback;');
                 return false;
             }
         }
-        return $this->save(\arc\object::prototype([
+        $this->db->exec('commit;');
+
+        return $this->save(\arc\prototype::create([
             'name' => 'Root'
         ]),'/');
     }

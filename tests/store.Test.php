@@ -10,7 +10,7 @@
      * file that was distributed with this source code.
      */
 
-    class TestStore extends PHPUnit_Framework_TestCase
+    class TestStore extends PHPUnit\Framework\TestCase
     {
         var $store = null;
 
@@ -33,7 +33,7 @@
 
         function testStoreSave()
         {
-            $result = $this->store->save(\arc\lambda::prototype([
+            $result = $this->store->save(\arc\prototype::create([
                 'name' => 'Foo',
                 'foo' => [
                     'bar' => 'Baz',
@@ -47,11 +47,13 @@
         {
             $result = $this->store->exists('/foo/');
             $this->assertTrue($result);
+            $result = $this->store->exists('/no-i-dont/');
+            $this->assertFalse($result);
         }
 
         function testStoreLs()
         {
-            $result = iterator_to_array($this->store->ls('/'));
+            $result = $this->store->ls('/');
             $this->assertContainsOnly('stdClass',$result);
             $this->assertCount(1, $result);
             $result = $this->store->cd('/foo/')->ls();
@@ -60,10 +62,10 @@
 
         function testStoreFind()
         {
-            $result = iterator_to_array($this->store->find("nodes.path~='/%'"));
+            $result = $this->store->find("nodes.path like '/%'");
             $this->assertContainsOnly('stdClass',$result);
             $this->assertCount(2, $result);
-            $result = iterator_to_array($this->store->find("foo.bar~='Ba%'"));
+            $result = $this->store->find("foo.bar like 'Ba%'");
             $this->assertCount(1, $result);
         }
 
@@ -75,7 +77,7 @@
             $this->assertFalse($result);
         }
 
-        function testEnd()
+        public static function tearDownAfterClass() :void
         {
             $db = new PDO('pgsql:host=localhost;dbname=arc_store_test;user=arc_store_test;password=test');
             $db->exec('drop table objects cascade');

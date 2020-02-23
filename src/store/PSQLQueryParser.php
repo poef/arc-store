@@ -38,6 +38,10 @@ final class PSQLQueryParser {
                 not
             )
             |
+            (?<compare>
+                < | > | = | <= | >= | <> | != | like | not like | \?
+            )
+            |
             (?<name>
                 [a-z]+[a-z0-9_-]*
                 (?: \. [a-z]+[a-z0-9_-]* )*
@@ -51,10 +55,6 @@ final class PSQLQueryParser {
                 (?<quote>(?<![\\\\])[\'])
                 (?<content>(?:.(?!(?<![\\\\])(?P=quote)))*.?)
                 (?P=quote) 
-            )
-            |
-            (?<compare>
-                < | > | = | <= | >= | <> | != | like | not like | \?
             )
             |
             (?<parenthesis_open>

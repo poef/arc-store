@@ -1,6 +1,9 @@
 <?php
 namespace arc\store;
 
+/*
+TODO: implement links
+*/
 final class PSQLStore {
 
     private $db;
@@ -41,9 +44,9 @@ final class PSQLStore {
      */
     public function find($query, $path='')
     {
-		$path = \arc\path::collapse($path, $this->path);
-		$sql  = $this->queryParser->parse($query, $path);
-        return call_user_func( $this->resultHandler, $sql, [] );
+        $path = \arc\path::collapse($path, $this->path);
+        $sql  = $this->queryParser->parse($query, $path);
+        return ($this->resultHandler)( $sql, [] );
     }
 
     /**
@@ -54,7 +57,16 @@ final class PSQLStore {
     public function get($path='')
     {
         $path   = \arc\path::collapse($path, $this->path);
-        return call_user_func($this->resultHandler, 'path=:path', [':path' => $path]);
+        $parent = ($path=='/' ? '' : \arc\path::parent($path));
+        $name   = ($path=='/' ? '' : basename($path));
+        $result = ($this->resultHandler)(
+            'parent=:parent and name=:name', 
+            [':parent' => $parent, ':name' => $name]
+        );
+        if (!is_array($result)) {
+            $result = iterator_to_array($result);
+        }
+        return array_pop($result);
     }
 
     /**
@@ -66,8 +78,7 @@ final class PSQLStore {
     public function parents($path='', $top='/')
     {
         $path   = \arc\path::collapse($path, $this->path);
-        return call_user_func(
-            $this->resultHandler,
+        return ($this->resultHandler)(
             /** @lang sql */
             'lower(path)=lower(substring(:path,1,length(path))) '
             . ' and lower(path) LIKE lower(:top) order by path',
@@ -83,11 +94,7 @@ final class PSQLStore {
     public function ls($path='')
     {
         $path   = \arc\path::collapse($path, $this->path);
-        return call_user_func(
-			$this->resultHandler,
-            'parent=:path',
-            [':path' => $path]
-        );
+        return ($this->resultHandler)('parent=:path', [':path' => $path]);
     }
 
     /**
@@ -108,9 +115,14 @@ final class PSQLStore {
      * @return bool|mixed
      */
     public function initialize() {
-        if ($this->exists('/')) {
-            return false;
+        try {
+            if ($result=$this->exists('/')) {
+                return false;
+            }
+        } catch (\PDOException $e) {
+            // expected exception
         }
+
         $queries = [];
         $queries[] = "begin;";
         $queries[] = "create extension if not exists pgcrypto;";
@@ -162,6 +174,9 @@ SQL;
     public function save($data, $path='') {
         $path   = \arc\path::collapse($path, $this->path);
         $parent = ($path=='/' ? '' : \arc\path::parent($path));
+        if ($path!='/' && !$this->exists($parent)) {
+            throw new \arc\IllegalRequest("Parent $parent not found.", \arc\exceptions::OBJECT_NOT_FOUND);
+        }
         $name = ($path=='/' ? '' : basename($path));
         $queryStr = <<<EOF
 insert into objects (parent, name, data) 
@@ -188,4 +203,42 @@ EOF;
         $query = $this->db->prepare("delete from nodes where path like :path and path!='/'");
         return $query->execute([':path' => $path.'%']);
     }
+
+    public static function defaultResultHandler($db)
+    {
+        return function($query, $args) use ($db) {
+            $q = $db->prepare('select * from nodes where '.$query);
+            $result = $q->execute($args);
+            $dataset = [];
+            while ( $data = $q->fetch(\PDO::FETCH_ASSOC) ) {
+                $value = (object) $data;
+                $value->data = json_decode($value->data);
+                $value->ctime = strtotime($value->ctime);
+                $value->mtime = strtotime($value->mtime);
+                $path = $value->parent.$value->name.'/';
+                $dataset[$path] = $value;
+            }
+            return $dataset;
+        };
+    }
+
+    public static function generatorResultHandler($db)
+    {
+        return function($query, $args) use ($db) {
+            $q = $db->prepare('select * from nodes where '.$query);
+            $result = $q->execute($args);
+            $data = $q->fetch(\PDO::FETCH_ASSOC);
+            while ($data) {
+                $value = (object) $data;
+                $value->data = json_decode($value->data);
+                $value->ctime = strtotime($value->ctime);
+                $value->mtime = strtotime($value->mtime);
+                $path = $value->path;
+                yield $path => $value;
+                $data = $q->fetch(\PDO::FETCH_ASSOC);
+            }
+            if (false) { yield; } // this makes sure PHP sees this function as a generator
+        };
+    }
+
 }

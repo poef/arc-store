@@ -22,7 +22,7 @@ final class PSQLQueryParser {
      * yields the tokens in the search query expression
      * @param string $query
      * @return \Generator
-     * @throws \Exception
+     * @throws \LogicException
      */
         
     private function tokens($query)
@@ -30,16 +30,16 @@ final class PSQLQueryParser {
         $token = <<<'REGEX'
 /^\s*
 (
+            (?<compare>
+                <= | >= | <> | < | > | = | != | ~= | !~ | \?
+            )
+            |
             (?<operator>
                 and | or
             )
             |
             (?<not>
                 not
-            )
-            |
-            (?<compare>
-                < | > | = | <= | >= | <> | != | like | not like | \?
             )
             |
             (?<name>
@@ -82,14 +82,14 @@ REGEX;
             }
         } while($result);
         if ( trim($query) ) {
-            throw new \Exception('Could not parse '.$query);
+            throw new \LogicException('Could not parse '.$query);
         }
     }
 
     /**
      * @param string $query
      * @return string postgresql 'where' part of the sql query
-     * @throws \Exception when a parse error occurs
+     * @throws \LogicException when a parse error occurs
      */
     public function parse($query)
     {
@@ -97,13 +97,13 @@ REGEX;
         $part     = '';
         $sql      = '';
         $position = 0;
-        $expect   = 'name|parenthesis';
+        $expect   = 'name|parenthesis_open|not';
         
         foreach( $this->tokens($query) as $token ) {
             $type = key($token);
             list($token, $offset)=$token[$type];
             if ( !preg_match("/^$expect$/",$type) ) {
-                throw new \Exception('Parse error at '.$position.': expected '.$expect.', got '.$type.': '
+                throw new \LogicException('Parse error at '.$position.': expected '.$expect.', got '.$type.': '
                     .(substr($query,0, $position)." --> ".substr($query,$position)) );
             }
             switch($type) {
@@ -111,7 +111,7 @@ REGEX;
                 case 'string':
                     $sql   .= $part.$token;
                     $part   = '';
-                    $expect = ['operator','parenthesis_close'];
+                    $expect = 'operator|parenthesis_close';
                 break;
                 case 'name':
                     switch ($token) {
@@ -142,10 +142,10 @@ REGEX;
                             $part.=$token;
                             str_replace($part, '#>>', '#>');
                         break;
-                        case 'like':
+                        case '~=':
                             $part.=' like ';
                         break;
-                        case 'not like':
+                        case '!~':
                             $part.=' not like ';
                         break;
                     }
@@ -177,10 +177,10 @@ REGEX;
             $position += $offset + strlen($token);
         }
         if ( $indent!=0 ) {
-            throw new \Exception('unbalanced parenthesis');
+            throw new \LogicException('unbalanced parenthesis');
         } else if ( trim($part) ) {
             $position -= strlen($token);
-            throw new \Exception('parse error at '.$position.': '.(substr($query,0, $position)." --> ".substr($query,$position)));
+            throw new \LogicException('parse error at '.$position.': '.(substr($query,0, $position)." --> ".substr($query,$position)));
         } else {
             return $sql;
         }

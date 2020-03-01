@@ -28,6 +28,47 @@
             $this->assertEquals("nodes.path='/'", $result);
             $result = $qp->parse("foo.bar='baz'");
             $this->assertEquals("nodes.data #>> '{foo,bar}'='baz'", $result);
+            $result = $qp->parse("foo.bar !~ 'b%z'");
+            $this->assertEquals("nodes.data #>> '{foo,bar}' not like 'b%z'", $result);
+            $result = $qp->parse("foo.bar ~= 'b%z'");
+            $this->assertEquals("nodes.data #>> '{foo,bar}' like 'b%z'", $result);
+            $result = $qp->parse("foo ? 'bar'");
+            $this->assertEquals("nodes.data #>> '{foo}'?'bar'", $result);
+            $result = $qp->parse("foo.bar>3");
+            $this->assertEquals("nodes.data #>> '{foo,bar}'>3",$result);
+            $result = $qp->parse("foo.bar <> 'bar\\'bar'");
+            $this->assertEquals("nodes.data #>> '{foo,bar}'<>'bar\\'bar'",$result);
+            $result = $qp->parse("foo.bar != 'bar\\'bar'");
+            $this->assertEquals("nodes.data #>> '{foo,bar}'!='bar\\'bar'",$result);
+            $result = $qp->parse("foo.bar !~ 'b%z' and bar.foo = 3");
+            $this->assertEquals("nodes.data #>> '{foo,bar}' not like 'b%z' and nodes.data #>> '{bar,foo}'=3", $result);
+            $result = $qp->parse("(foo.bar !~ 'b%z' and bar.foo = 3)");
+            $this->assertEquals("(nodes.data #>> '{foo,bar}' not like 'b%z' and nodes.data #>> '{bar,foo}'=3)", $result);
+            $result = $qp->parse("(foo.bar !~ 'b%z' and bar.foo = 3) or nodes.path='/'");
+            $this->assertEquals("(nodes.data #>> '{foo,bar}' not like 'b%z' and nodes.data #>> '{bar,foo}'=3) or nodes.path='/'", $result);
+            $result = $qp->parse("not(foo.bar = 'bar')");
+            $this->assertEquals("not(nodes.data #>> '{foo,bar}'='bar')", $result);
+        }
+
+        function testStoreParseError()
+        {
+            $qp = new \arc\store\PSQLQueryParser();
+            $this->expectException(\LogicException::class);
+            $result = $qp->parse("just_a_name_with_1_number");
+        }
+
+        function testStoreParseParenthesisError()
+        {
+            $qp = new \arc\store\PSQLQueryParser();
+            $this->expectException(\LogicException::class);
+            $result = $qp->parse("(parenthesis = 'unbalanced'");
+        }
+
+        function testStoreParseStringError()
+        {
+            $qp = new \arc\store\PSQLQueryParser();
+            $this->expectException(\LogicException::class);
+            $result = $qp->parse("foo = 'bar");
         }
 
 
@@ -62,10 +103,10 @@
 
         function testStoreFind()
         {
-            $result = $this->store->find("nodes.path like '/%'");
+            $result = $this->store->find("nodes.path ~= '/%'");
             $this->assertContainsOnly('stdClass',$result);
             $this->assertCount(2, $result);
-            $result = $this->store->find("foo.bar like 'Ba%'");
+            $result = $this->store->find("foo.bar ~= 'Ba%'");
             $this->assertCount(1, $result);
         }
 

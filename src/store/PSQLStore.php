@@ -200,8 +200,17 @@ EOF;
      */
     public function delete($path = '') {
         $path   = \arc\path::collapse($path, $this->path);
-        $query = $this->db->prepare("delete from nodes where path like :path and path!='/'");
-        return $query->execute([':path' => $path.'%']);
+        $parent = \arc\path::parent($path);
+        $name   = basename($path);
+        $queryStr = <<<EOF
+delete from objects where (parent like :path or (parent = :parent and name = :name ))
+EOF;
+        $query = $this->db->prepare($queryStr);
+        return $query->execute([
+            ':path' => $path.'%',
+            ':parent' => $parent,
+            ':name' => $name
+        ]);
     }
 
     public static function defaultResultHandler($db)

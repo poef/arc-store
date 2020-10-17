@@ -215,8 +215,8 @@ EOF;
 
     public static function defaultResultHandler($db)
     {
-        return function($query, $args) use ($db) {
-            $q = $db->prepare('select * from nodes where '.$query);
+        return function($query, $args, $select='*', $order='path ASC') use ($db) {
+            $q = $db->prepare('select '.$select.' from nodes where '.$query.' order by '.$order);
             $result = $q->execute($args);
             $dataset = [];
             while ( $data = $q->fetch(\PDO::FETCH_ASSOC) ) {
@@ -233,8 +233,8 @@ EOF;
 
     public static function generatorResultHandler($db)
     {
-        return function($query, $args) use ($db) {
-            $q = $db->prepare('select * from nodes where '.$query);
+        return function($query, $args, $select='*', $order='path ASC') use ($db) {
+            $q = $db->prepare('select '.$select.' from nodes where '.$query.' order by '.$order);
             $result = $q->execute($args);
             $data = $q->fetch(\PDO::FETCH_ASSOC);
             while ($data) {

@@ -24,20 +24,22 @@ final class store {
         $db = new \PDO($dsn);
         $db->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
         if (strpos($dsn, 'mysql:')===0) {
-            $storeType = 'store\MySQL';
+            $storeType = '\arc\store\MySQL';
         }
         if (strpos($dsn, 'pgsql:')===0) {
-            $storeType = 'store\PSQL';
+            $storeType = '\arc\store\PSQL';
         }
         if (!$storeType) {
             throw new \arc\ConfigError('Unknown database type');
         }
         if (!$resultHandler) {
-            $resultHandler = {$storeType.'Store'}::defaultResultHandler($db);
+            $className = $storeType.'Store';            
+            $resultHandler = $className::defaultResultHandler($db);
         }
-        $store = new {$storeType.'Store'}(
+        $queryParserClassName = $storeType.'QueryParser';
+        $store = new $className(
             $db, 
-            new {$storeType.'QueryParser'}(self::tokenizer), 
+            new $queryParserClassName(array('\arc\store','tokenizer')), 
             $resultHandler
         );
         \arc\context::push([
@@ -116,7 +118,7 @@ final class store {
      * @throws \LogicException
      */
         
-    private static function tokenizer($query) {
+    public static function tokenizer($query) {
     /*
         query syntax:
         part     = ( name '.' )* name compare value

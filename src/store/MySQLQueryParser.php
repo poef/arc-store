@@ -4,6 +4,8 @@ namespace arc\store;
 
 final class PSQLQueryParser {
 
+    private $tokenizer;
+
 	public function __construct($tokenizer) {
 		$this->tokenizer = $tokenizer;
 	}
@@ -21,7 +23,7 @@ final class PSQLQueryParser {
         $position = 0;
         $expect   = 'name|parenthesis_open|not';
         
-        foreach( $this->tokenizer($query) as $token ) {
+        foreach( call_user_func($this->tokenizer, $query) as $token ) {
             $type = key($token);
             list($token, $offset)=$token[$type];
             if ( !preg_match("/^$expect$/",$type) ) {
@@ -39,6 +41,7 @@ final class PSQLQueryParser {
                     switch ($token) {
                         case 'nodes.path':
                         case 'nodes.parent':
+                        case 'nodes.name':
                         case 'nodes.mtime':
                         case 'nodes.ctime':
                             $part = $token;

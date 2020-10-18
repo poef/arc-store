@@ -17,13 +17,13 @@
         function __construct()
         {
             parent::__construct();
-            $this->store = \arc\store::connect('pgsql:host=localhost;dbname=arc_store_test;user=arc_store_test;password=test');
+            $this->store = \arc\store::connect('pgsql:host=localhost;dbname=arc_store_test;user=arc_store_test;password=arc_store_test');
             $this->store->initialize();
         }
 
         function testStoreQuery()
         {
-            $qp = new \arc\store\PSQLQueryParser();
+            $qp = new \arc\store\PSQLQueryParser(array('\arc\store','tokenizer'));
             $result = $qp->parse("nodes.path='/'");
             $this->assertEquals("nodes.path='/'", $result);
             $result = $qp->parse("foo.bar='baz'");
@@ -52,21 +52,21 @@
 
         function testStoreParseError()
         {
-            $qp = new \arc\store\PSQLQueryParser();
+            $qp = new \arc\store\PSQLQueryParser(array('\arc\store','tokenizer'));
             $this->expectException(\LogicException::class);
             $result = $qp->parse("just_a_name_with_1_number");
         }
 
         function testStoreParseParenthesisError()
         {
-            $qp = new \arc\store\PSQLQueryParser();
+            $qp = new \arc\store\PSQLQueryParser(array('\arc\store','tokenizer'));
             $this->expectException(\LogicException::class);
             $result = $qp->parse("(parenthesis = 'unbalanced'");
         }
 
         function testStoreParseStringError()
         {
-            $qp = new \arc\store\PSQLQueryParser();
+            $qp = new \arc\store\PSQLQueryParser(array('\arc\store','tokenizer'));
             $this->expectException(\LogicException::class);
             $result = $qp->parse("foo = 'bar");
         }
@@ -120,7 +120,7 @@
 
         public static function tearDownAfterClass() :void
         {
-            $db = new PDO('pgsql:host=localhost;dbname=arc_store_test;user=arc_store_test;password=test');
+            $db = new PDO('pgsql:host=localhost;dbname=arc_store_test;user=arc_store_test;password=arc_store_test');
             $db->exec('drop table objects cascade');
             $db->exec('drop table links cascade');
         }

@@ -3,8 +3,6 @@
 namespace arc\store;
 
 final class PSQLQueryParser {
-	
-	private $this->tokenizer;
 
 	public function __construct($tokenizer) {
 		$this->tokenizer = $tokenizer;

@@ -2,7 +2,7 @@
 
 namespace arc\store;
 
-final class PSQLQueryParser {
+final class MySQLQueryParser {
 
     private $tokenizer;
 
@@ -47,7 +47,7 @@ final class PSQLQueryParser {
                             $part = $token;
                         break;
                         default:
-                            $part = "nodes.data #>> '{".str_replace('.',',',$token)."}'";
+                            $part = "JSON_UNQUOTE(JSON_EXTRACT( nodes.data, '$.".$token."'))";
                         break;
                     }
                     $expect = 'compare';
@@ -64,8 +64,8 @@ final class PSQLQueryParser {
                             $part.=$token;
                         break;
                         case '?':
-                            $part.=$token;
-                            str_replace($part, '#>>', '#>');
+                            $part.= ' IS NOT NULL';
+                            str_replace($part, '->>', '->');
                         break;
                         case '~=':
                             $part.=' like ';

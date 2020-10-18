@@ -125,30 +125,21 @@ final class MySQLStore {
 
         $queries = [];
         $queries[] = "begin;";
-        $queries[] = "create extension if not exists pgcrypto;";
         $queries[] = <<<SQL
-create table objects (
-    id     binary(16) primary key,
+create table nodes (
     parent text not null ,
     name   text not null,
+    path   text generated always as (concat(parent,name,'/')),
     data   json not null,
     ctime  timestamp default current_timestamp,
     mtime  timestamp default current_timestamp on update current_timestamp,
-    UNIQUE(parent,name)
+    KEY key_parent (parent(255)),
+    KEY key_name (name(255)),
+    UNIQUE(parent(255),name(255))
 );
 SQL;
-        $queries[] = "create unique index path on objects ((parent + name + '/'));";
-        $queries[] = "create view nodes as select concat_ws(parent, name, '/') as path, * from objects;";
-        $queries[] = <<<SQL
-create table links (
-    from_id  binary(16) references objects(id),
-    to_id    binary(16) references objects(id),
-    relation text not null,
-    UNIQUE(from_id,to_id)
-);
-SQL;
-        $queries[] = "create index link_from on links(from_id);";
-        $queries[] = "create index link_to on links(to_id);";
+//        $queries[] = "create trigger before_insert_node before insert on nodes for each row set new.id = UUID_TO_BIN(uuid());";
+        $queries[] = "create unique index path on nodes ( path(255) );";
         foreach ( $queries as $query ) {
             $result = $this->db->exec($query);
             if ($result===false) {
@@ -177,7 +168,7 @@ SQL;
         }
         $name = ($path=='/' ? '' : basename($path));
         $queryStr = <<<EOF
-insert into objects (parent, name, data) 
+insert into nodes (parent, name, data) 
 values (:parent, :name, :data) 
 on duplicate key update  
   data = :data;
@@ -201,7 +192,7 @@ EOF;
         $parent = \arc\path::parent($path);
         $name   = basename($path);
         $queryStr = <<<EOF
-delete from objects where (parent like :path or (parent = :parent and name = :name ))
+delete from nodes where (parent like :path or (parent = :parent and name = :name ))
 EOF;
         $query = $this->db->prepare($queryStr);
         return $query->execute([

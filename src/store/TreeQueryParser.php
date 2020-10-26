@@ -45,10 +45,10 @@ final class TreeQueryParser {
                 case 'name':
                     switch ($token) {
                         case 'nodes.path':
-                            $part = '$node->path';
+                            $part = '$node->getPath()';
                         break;
                         case 'nodes.parent':
-                            $part = '$node->parent->path';
+                            $part = '$node->parentNode->getPath()';
                         break;
                         case 'nodes.name':
                             $part = '$node->nodeName';
@@ -72,22 +72,22 @@ final class TreeQueryParser {
                         case '<':
                         case '<=':
                         case '!=':
-                            $part .= $token;
+                            $part = '( '.$part. ' ?? null ) '.$token;
                         break;
                         case '<>':
-                            $part .= '!=';
+                            $part = '( '.$part. ' ?? null ) !=';
                         break;
                         case '=':
-                            $part .= '==';
+                            $part = '( '.$part. ' ?? null ) ==';
                         break;
                         case '?':
-                            $part ='property_exists('.$part.',{placeholder})';
+                            $part ='property_exists('.$part.' ?? null,{placeholder})';
                         break;
                         case '~=':
-                            $part = 'like('.$part.',{placeholder})';
+                            $part = '$like('.$part.' ?? null,{placeholder})';
                         break;
                         case '!~':
-                            $part = '!like('.$part.',{placeholder})';
+                            $part = '!$like('.$part.' ?? null,{placeholder})';
                         break;
                     }
                     $expect = 'number|string';

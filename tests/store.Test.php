@@ -12,47 +12,61 @@
 
     class TestStore extends PHPUnit\Framework\TestCase
     {
-        var $store = null;
+        static $store = null;
+        static $tree = null;
+
         static $dns = [
             'pgsql:host=localhost;dbname=arc_store_test;user=postgres;password=',
             'mysql:host=localhost;dbname=arc_store_test;user=root;password='
         ];
         
 
+        public static function setupBeforeClass() : void
+        {            
+/*
+            self::$tree = \arc\tree::expand([]);
+            self::$store = new \arc\store\TreeStore( 
+                self::$tree,
+                new \arc\store\TreeQueryParser( array('\arc\store','tokenizer')),
+                array('\arc\store\TreeStore','getResultHandler')
+            );
+*/
+            self::$store = \arc\store::connect(self::$dns[0]);
+            self::$store->initialize();
+        }
+
         function __construct()
         {
             parent::__construct();
-            $this->store = \arc\store::connect(self::$dns[0]);
-            $this->store->initialize();
         }
 
         function testTreeQuery()
         {
             $qp = new \arc\store\TreeQueryParser(array('\arc\store','tokenizer'));
             $result = $qp->parse("nodes.path='/'");
-            $this->assertEquals("\$node->path=='/'", $result);
+            $this->assertEquals("( \$node->getPath() ?? null ) =='/'", $result);
             $result = $qp->parse("foo.bar='baz'");
-            $this->assertEquals("\$node->nodeValue->foo->bar=='baz'", $result);
+            $this->assertEquals("( \$node->nodeValue->foo->bar ?? null ) =='baz'", $result);
             $result = $qp->parse("foo.bar !~ 'b%z'");
-            $this->assertEquals("!like(\$node->nodeValue->foo->bar,'b%z')", $result);
+            $this->assertEquals("!\$like(\$node->nodeValue->foo->bar ?? null,'b%z')", $result);
             $result = $qp->parse("foo.bar ~= 'b%z'");
-            $this->assertEquals("like(\$node->nodeValue->foo->bar,'b%z')", $result);
+            $this->assertEquals("\$like(\$node->nodeValue->foo->bar ?? null,'b%z')", $result);
             $result = $qp->parse("foo ? 'bar'");
-            $this->assertEquals("property_exists(\$node->nodeValue->foo,'bar')", $result);
+            $this->assertEquals("property_exists(\$node->nodeValue->foo ?? null,'bar')", $result);
             $result = $qp->parse("foo.bar>3");
-            $this->assertEquals("\$node->nodeValue->foo->bar>3",$result);
+            $this->assertEquals("( \$node->nodeValue->foo->bar ?? null ) >3",$result);
             $result = $qp->parse("foo.bar <> 'bar\\'bar'");
-            $this->assertEquals("\$node->nodeValue->foo->bar!='bar\\'bar'",$result);
+            $this->assertEquals("( \$node->nodeValue->foo->bar ?? null ) !='bar\\'bar'",$result);
             $result = $qp->parse("foo.bar != 'bar\\'bar'");
-            $this->assertEquals("\$node->nodeValue->foo->bar!='bar\\'bar'",$result);
+            $this->assertEquals("( \$node->nodeValue->foo->bar ?? null ) !='bar\\'bar'",$result);
             $result = $qp->parse("foo.bar !~ 'b%z' and bar.foo = 3");
-            $this->assertEquals("!like(\$node->nodeValue->foo->bar,'b%z') && \$node->nodeValue->bar->foo==3", $result);
+            $this->assertEquals("!\$like(\$node->nodeValue->foo->bar ?? null,'b%z') && ( \$node->nodeValue->bar->foo ?? null ) ==3", $result);
             $result = $qp->parse("(foo.bar !~ 'b%z' and bar.foo = 3)");
-            $this->assertEquals("(!like(\$node->nodeValue->foo->bar,'b%z') && \$node->nodeValue->bar->foo==3)", $result);
+            $this->assertEquals("(!\$like(\$node->nodeValue->foo->bar ?? null,'b%z') && ( \$node->nodeValue->bar->foo ?? null ) ==3)", $result);
             $result = $qp->parse("(foo.bar !~ 'b%z' and bar.foo = 3) or nodes.path='/'");
-            $this->assertEquals("(!like(\$node->nodeValue->foo->bar,'b%z') && \$node->nodeValue->bar->foo==3) || \$node->path=='/'", $result);
+            $this->assertEquals("(!\$like(\$node->nodeValue->foo->bar ?? null,'b%z') && ( \$node->nodeValue->bar->foo ?? null ) ==3) || ( \$node->getPath() ?? null ) =='/'", $result);
             $result = $qp->parse("not(foo.bar = 'bar')");
-            $this->assertEquals("!(\$node->nodeValue->foo->bar=='bar')", $result);
+            $this->assertEquals("!(( \$node->nodeValue->foo->bar ?? null ) =='bar')", $result);
         }
         
         function testStoreQuery()
@@ -109,47 +123,50 @@
 
         function testStoreSave()
         {
-            $result = $this->store->save(\arc\prototype::create([
+            $result = self::$store->save(\arc\prototype::create([
                 'name' => 'Foo',
-                'foo' => [
+                'foo' => \arc\prototype::create([
                     'bar' => 'Baz',
                     'int' => 10
-                ]
+                ])
             ]), '/foo/');
             $this->assertTrue($result);
+            $result = self::$store->get('/foo/');
+            $this->assertEquals($result->nodeValue->name,'Foo');
+            $this->assertEquals($result->nodeValue->foo->bar,'Baz');
         }
 
         function testStoreExists()
         {
-            $result = $this->store->exists('/foo/');
+            $result = self::$store->exists('/foo/');
             $this->assertTrue($result);
-            $result = $this->store->exists('/no-i-dont/');
+            $result = self::$store->exists('/no-i-dont/');
             $this->assertFalse($result);
         }
 
         function testStoreLs()
         {
-            $result = $this->store->ls('/');
+            $result = self::$store->ls('/');
             $this->assertContainsOnly('stdClass',$result);
             $this->assertCount(1, $result);
-            $result = $this->store->cd('/foo/')->ls();
+            $result = self::$store->cd('/foo/')->ls();
             $this->assertCount(0, $result);
         }
 
         function testStoreFind()
         {
-            $result = $this->store->find("nodes.path ~= '/%'");
+            $result = self::$store->find("foo.bar ~= 'Ba%'");
+            $this->assertCount(1, $result);
+            $result = self::$store->find("nodes.path ~= '/%'");
             $this->assertContainsOnly('stdClass',$result);
             $this->assertCount(2, $result);
-            $result = $this->store->find("foo.bar ~= 'Ba%'");
-            $this->assertCount(1, $result);
         }
 
         function testStoreDelete()
         {
-            $result = $this->store->delete('/foo/');
+            $result = self::$store->delete('/foo/');
             $this->assertTrue($result);
-            $result = $this->store->exists('/foo/');
+            $result = self::$store->exists('/foo/');
             $this->assertFalse($result);
         }
 

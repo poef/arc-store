@@ -1,8 +1,9 @@
 <?php
     namespace arc\store;
 
-    abstract class DBStore {
-        public static function defaultResultHandler($db = null)
+    class ResultHandlers {
+
+        public static function getDBHandler($db = null)
         {
             if (!$db) {
                 $db = self::getDb();
@@ -23,7 +24,7 @@
             };
         }
 
-        public static function generatorResultHandler($db = null)
+        public static function getDBGeneratorHandler($db = null)
         {
             if (!$db) {
                 $db = self::getDb();

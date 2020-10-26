@@ -4,7 +4,7 @@ namespace arc\store;
 /*
 TODO: implement links
 */
-final class MySQLStore extends DBStore {
+final class MySQLStore implements Store {
 
     private $db;
     private $queryParser;

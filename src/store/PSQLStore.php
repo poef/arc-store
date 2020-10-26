@@ -4,7 +4,7 @@ namespace arc\store;
 /*
 TODO: implement links
 */
-final class PSQLStore extends DBStore {
+final class PSQLStore implements Store {
 
     private $db;
     private $queryParser;

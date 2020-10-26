@@ -1,15 +1,17 @@
 language: php
 php:
-  - '5.6'
-  - '7.0'
-  - 'hhvm'
+  - '7.3'
+  - '7.4'
 
-matrix:
-   allow_failures:
-         - php: 'hhvm'
+services: postgresql
 
 before_script:
    - composer install
+   - psql -c 'create database arc_store_test;' -U postgres
+
+test:
+  adapter: postgresql
+  database: arc_store_test  
 
 script: vendor/bin/phpunit -d zend.enable_gc=0 --coverage-clover=coverage.clover
 

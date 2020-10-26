@@ -26,6 +26,35 @@
             $this->store->initialize();
         }
 
+        function testTreeQuery()
+        {
+            $qp = new \arc\store\TreeQueryParser(array('\arc\store','tokenizer'));
+            $result = $qp->parse("nodes.path='/'");
+            $this->assertEquals("\$node->path=='/'", $result);
+            $result = $qp->parse("foo.bar='baz'");
+            $this->assertEquals("\$node->nodeValue->foo->bar=='baz'", $result);
+            $result = $qp->parse("foo.bar !~ 'b%z'");
+            $this->assertEquals("!like(\$node->nodeValue->foo->bar,'b%z')", $result);
+            $result = $qp->parse("foo.bar ~= 'b%z'");
+            $this->assertEquals("like(\$node->nodeValue->foo->bar,'b%z')", $result);
+            $result = $qp->parse("foo ? 'bar'");
+            $this->assertEquals("property_exists(\$node->nodeValue->foo,'bar')", $result);
+            $result = $qp->parse("foo.bar>3");
+            $this->assertEquals("\$node->nodeValue->foo->bar>3",$result);
+            $result = $qp->parse("foo.bar <> 'bar\\'bar'");
+            $this->assertEquals("\$node->nodeValue->foo->bar!='bar\\'bar'",$result);
+            $result = $qp->parse("foo.bar != 'bar\\'bar'");
+            $this->assertEquals("\$node->nodeValue->foo->bar!='bar\\'bar'",$result);
+            $result = $qp->parse("foo.bar !~ 'b%z' and bar.foo = 3");
+            $this->assertEquals("!like(\$node->nodeValue->foo->bar,'b%z') && \$node->nodeValue->bar->foo==3", $result);
+            $result = $qp->parse("(foo.bar !~ 'b%z' and bar.foo = 3)");
+            $this->assertEquals("(!like(\$node->nodeValue->foo->bar,'b%z') && \$node->nodeValue->bar->foo==3)", $result);
+            $result = $qp->parse("(foo.bar !~ 'b%z' and bar.foo = 3) or nodes.path='/'");
+            $this->assertEquals("(!like(\$node->nodeValue->foo->bar,'b%z') && \$node->nodeValue->bar->foo==3) || \$node->path=='/'", $result);
+            $result = $qp->parse("not(foo.bar = 'bar')");
+            $this->assertEquals("!(\$node->nodeValue->foo->bar=='bar')", $result);
+        }
+        
         function testStoreQuery()
         {
             $qp = new \arc\store\PSQLQueryParser(array('\arc\store','tokenizer'));
@@ -54,6 +83,7 @@
             $result = $qp->parse("not(foo.bar = 'bar')");
             $this->assertEquals("not(nodes.data #>> '{foo,bar}'='bar')", $result);
         }
+
 
         function testStoreParseError()
         {

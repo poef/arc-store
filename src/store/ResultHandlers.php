@@ -3,11 +3,8 @@
 
     class ResultHandlers {
 
-        public static function getDBHandler($db = null)
+        public static function getDBHandler($db)
         {
-            if (!$db) {
-                $db = self::getDb();
-            }
             return function($query, $args) use ($db) {
                 $q = $db->prepare('select * from nodes where '.$query);
                 $result = $q->execute($args);
@@ -24,11 +21,8 @@
             };
         }
 
-        public static function getDBGeneratorHandler($db = null)
+        public static function getDBGeneratorHandler($db)
         {
-            if (!$db) {
-                $db = self::getDb();
-            }
             return function($query, $args) use ($db) {
                 $q = $db->prepare('select * from nodes where '.$query);
                 $result = $q->execute($args);

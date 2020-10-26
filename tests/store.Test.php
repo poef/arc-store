@@ -14,7 +14,7 @@
     {
         var $store = null;
         static $dns = [
-            'pgsql:host=localhost;dbname=arc_store_test;user=arc_store_test;password=arc_store_test',
+            'pgsql:host=localhost;dbname=arc_store_test;user=postgres;password=',
             'mysql:host=localhost;dbname=arc_store_test;user=root;password='
         ];
         
@@ -22,7 +22,6 @@
         function __construct()
         {
             parent::__construct();
-//            $this->store = \arc\store::connect('pgsql:host=localhost;dbname=arc_store_test;user=arc_store_test;password=arc_store_test');
             $this->store = \arc\store::connect(self::$dns[0]);
             $this->store->initialize();
         }

@@ -15,9 +15,9 @@ final class store {
 
     /**
      * Connects to an ARC object store
-     * @param $dsn postgresql connection string
-     * @param null $resultHandler handler that executes the sql query
-     * @return store\PSQLStore the store
+     * @param string $dsn postgresql connection string
+     * @param string $resultHandler handler that executes the sql query
+     * @return store\Store the store
      */
     public static function connect($dsn, $resultHandler=null)
     {
@@ -118,8 +118,7 @@ final class store {
      * @param string $query
      * @return \Generator
      * @throws \LogicException
-     */
-        
+     */        
     public static function tokenizer($query) {
     /*
         query syntax:

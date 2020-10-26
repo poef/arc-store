@@ -32,8 +32,8 @@ final class store {
         if (!$storeType) {
             throw new \arc\ConfigError('Unknown database type');
         }
+        $className = $storeType.'Store';
         if (!$resultHandler) {
-            $className = $storeType.'Store';
             $resultHandler = array($className, 'defaultResultHandler');
         }
         $queryParserClassName = $storeType.'QueryParser';

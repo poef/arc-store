@@ -33,14 +33,14 @@ final class store {
             throw new \arc\ConfigError('Unknown database type');
         }
         if (!$resultHandler) {
-            $className = $storeType.'Store';            
-            $resultHandler = $className::defaultResultHandler($db);
+            $className = $storeType.'Store';
+            $resultHandler = array($className, 'defaultResultHandler');
         }
         $queryParserClassName = $storeType.'QueryParser';
         $store = new $className(
             $db, 
             new $queryParserClassName(array('\arc\store','tokenizer')), 
-            $resultHandler
+            $resultHandler($db)
         );
         \arc\context::push([
             'arcStore' => $store

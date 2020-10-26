@@ -14,7 +14,7 @@
     {
         var $store = null;
         static $dns = [
-            'pgsql:host=localhost;dbname=arc_store_test;user=postgres;password=',
+            'pgsql:host=localhost;dbname=arc_store_test;user=arc_store_test;password=arc_store_test',
             'mysql:host=localhost;dbname=arc_store_test;user=root;password='
         ];
         

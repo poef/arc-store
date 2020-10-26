@@ -13,9 +13,9 @@ final class PSQLStore implements Store {
 
     /**
      * PSQLStore constructor.
-     * @param null $db
-     * @param null $queryParser
-     * @param null $resultHandler
+     * @param \PDO $db
+     * @param callable $queryParser
+     * @param callable $resultHandler
      * @param string $path
      */
     public function __construct($db = null, $queryParser = null, $resultHandler = null, $path = '/')

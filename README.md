@@ -1,6 +1,6 @@
 # arc\store: fast schema-free JSON store
 
-[![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/Ariadne-CMS/arc-store/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/Ariadne-CMS/arc-base/?branch=master)
+[![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/Ariadne-CMS/arc-store/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/Ariadne-CMS/arc-store/?branch=master)
 [![Code Coverage](https://scrutinizer-ci.com/g/Ariadne-CMS/arc-store/badges/coverage.png?b=master)](https://scrutinizer-ci.com/g/Ariadne-CMS/arc-store/)
 [![Latest Stable Version](https://poser.pugx.org/arc/store/v/stable.svg)](https://packagist.org/packages/arc/store)
 [![Total Downloads](https://poser.pugx.org/arc/store/downloads.svg)](https://packagist.org/packages/arc/store)

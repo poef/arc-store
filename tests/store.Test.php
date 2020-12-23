@@ -23,16 +23,15 @@
 
         public static function setupBeforeClass() : void
         {            
-/*
             self::$tree = \arc\tree::expand([]);
             self::$store = new \arc\store\TreeStore( 
                 self::$tree,
                 new \arc\store\TreeQueryParser( array('\arc\store','tokenizer')),
                 array('\arc\store\TreeStore','getResultHandler')
             );
-*/
-            self::$store = \arc\store::connect(self::$dns[0]);
+//            self::$store = \arc\store::connect(self::$dns[0]);
             self::$store->initialize();
+
         }
 
         function __construct()
@@ -98,6 +97,14 @@
             $this->assertEquals("not(nodes.data #>> '{foo,bar}'='bar')", $result);
         }
 
+
+        function testMaliciousQueries()
+        {
+            $qp = new \arc\store\PSQLQueryParser(array('\arc\store','tokenizer'));
+            $this->expectException(LogicException::class);
+            $result = $qp->parse("nodes.path=''/'");
+            echo $result."\n";
+        }
 
         function testStoreParseError()
         {
@@ -172,10 +179,12 @@
 
         public static function tearDownAfterClass() :void
         {
+/*
             $db = new PDO(self::$dns[0]);
             $db->exec('drop table nodes;');
             $db->exec('drop table objects;');
             $db->exec('drop table links;');
+*/
         }
     
     }

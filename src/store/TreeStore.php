@@ -44,8 +44,8 @@ final class TreeStore implements Store {
     {
         $path = \arc\path::collapse($path, $this->path);
         $root = $this->tree->cd($path);
-        $fn  = $this->queryParser->parse($query, $path);
-        return call_user_func($this->resultHandler, $fn );
+        $f    = $this->queryParser->parse($query, $path);
+        return call_user_func($this->resultHandler, $f );
     }
 
     /**
@@ -154,13 +154,7 @@ final class TreeStore implements Store {
 
     public static function getResultHandler($tree)
     {
-        $like = function($haystack, $needle) {
-            $re = str_replace('%', '.*', $needle);
-            return preg_match('|'.$re.'|i', $haystack);
-        };
-        return function($fn) use ($tree, $like) {
-            $script = 'return function($node) use ($like) { return '.$fn.'; };';
-            $callback = eval($script);
+        return function($callback) use ($tree) {
             $dataset = \arc\tree::filter($tree, $callback);
             foreach($dataset as $path => $node) {
                 $node = json_decode(json_encode($node),false);

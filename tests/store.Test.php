@@ -39,6 +39,7 @@
             parent::__construct();
         }
 
+/*
         function testTreeQuery()
         {
             $qp = new \arc\store\TreeQueryParser(array('\arc\store','tokenizer'));
@@ -67,6 +68,7 @@
             $result = $qp->parse("not(foo.bar = 'bar')");
             $this->assertEquals("!(( \$node->nodeValue->foo->bar ?? null ) =='bar')", $result);
         }
+*/
         
         function testPostgresqlStoreQuery()
         {

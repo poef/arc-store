@@ -68,42 +68,70 @@
             $this->assertEquals("!(( \$node->nodeValue->foo->bar ?? null ) =='bar')", $result);
         }
         
-        function testStoreQuery()
+        function testPostgresqlStoreQuery()
         {
             $qp = new \arc\store\PSQLQueryParser(array('\arc\store','tokenizer'));
             $result = $qp->parse("nodes.path='/'");
-            $this->assertEquals("nodes.path='/'", $result);
+            $this->assertEquals("nodes.path = '/'", $result);
             $result = $qp->parse("foo.bar='baz'");
-            $this->assertEquals("nodes.data #>> '{foo,bar}'='baz'", $result);
+            $this->assertEquals("nodes.data #>> '{foo,bar}' = 'baz'", $result);
             $result = $qp->parse("foo.bar !~ 'b%z'");
             $this->assertEquals("nodes.data #>> '{foo,bar}' not like 'b%z'", $result);
             $result = $qp->parse("foo.bar ~= 'b%z'");
             $this->assertEquals("nodes.data #>> '{foo,bar}' like 'b%z'", $result);
             $result = $qp->parse("foo ? 'bar'");
-            $this->assertEquals("nodes.data #>> '{foo}'?'bar'", $result);
+            $this->assertEquals("nodes.data #> '{foo}' ? 'bar'", $result);
             $result = $qp->parse("foo.bar>3");
-            $this->assertEquals("nodes.data #>> '{foo,bar}'>3",$result);
+            $this->assertEquals("nodes.data #>> '{foo,bar}' > 3",$result);
             $result = $qp->parse("foo.bar <> 'bar\\'bar'");
-            $this->assertEquals("nodes.data #>> '{foo,bar}'<>'bar\\'bar'",$result);
+            $this->assertEquals("nodes.data #>> '{foo,bar}' <> 'bar\\'bar'",$result);
             $result = $qp->parse("foo.bar != 'bar\\'bar'");
-            $this->assertEquals("nodes.data #>> '{foo,bar}'!='bar\\'bar'",$result);
+            $this->assertEquals("nodes.data #>> '{foo,bar}' != 'bar\\'bar'",$result);
             $result = $qp->parse("foo.bar !~ 'b%z' and bar.foo = 3");
-            $this->assertEquals("nodes.data #>> '{foo,bar}' not like 'b%z' and nodes.data #>> '{bar,foo}'=3", $result);
+            $this->assertEquals("nodes.data #>> '{foo,bar}' not like 'b%z' and nodes.data #>> '{bar,foo}' = 3", $result);
             $result = $qp->parse("(foo.bar !~ 'b%z' and bar.foo = 3)");
-            $this->assertEquals("(nodes.data #>> '{foo,bar}' not like 'b%z' and nodes.data #>> '{bar,foo}'=3)", $result);
-            $result = $qp->parse("(foo.bar !~ 'b%z' and bar.foo = 3) or nodes.path='/'");
-            $this->assertEquals("(nodes.data #>> '{foo,bar}' not like 'b%z' and nodes.data #>> '{bar,foo}'=3) or nodes.path='/'", $result);
+            $this->assertEquals("( nodes.data #>> '{foo,bar}' not like 'b%z' and nodes.data #>> '{bar,foo}' = 3 )", $result);
+            $result = $qp->parse("(foo.bar !~ 'b%z' and bar.foo = 3) or nodes.path = '/'");
+            $this->assertEquals("( nodes.data #>> '{foo,bar}' not like 'b%z' and nodes.data #>> '{bar,foo}' = 3 ) or nodes.path = '/'", $result);
             $result = $qp->parse("not(foo.bar = 'bar')");
-            $this->assertEquals("not(nodes.data #>> '{foo,bar}'='bar')", $result);
+            $this->assertEquals("not ( nodes.data #>> '{foo,bar}' = 'bar' )", $result);
+        }
+
+        function testMysqlStoreQuery()
+        {
+            $qp = new \arc\store\MySQLQueryParser(array('\arc\store','tokenizer'));
+            $result = $qp->parse("nodes.path='/'");
+            $this->assertEquals("nodes.path = '/'", $result);
+            $result = $qp->parse("foo.bar='baz'");
+            $this->assertEquals("JSON_UNQUOTE(JSON_EXTRACT( nodes.data, '$.foo.bar')) = 'baz'", $result);
+            $result = $qp->parse("foo.bar !~ 'b%z'");
+            $this->assertEquals("JSON_UNQUOTE(JSON_EXTRACT( nodes.data, '$.foo.bar')) not like 'b%z'", $result);
+            $result = $qp->parse("foo.bar ~= 'b%z'");
+            $this->assertEquals("JSON_UNQUOTE(JSON_EXTRACT( nodes.data, '$.foo.bar')) like 'b%z'", $result);
+            $result = $qp->parse("foo ? 'bar'");
+            $this->assertEquals("JSON_UNQUOTE(JSON_EXTRACT( nodes.data, '$.foo')) IS NOT NULL 'bar'", $result);
+            $result = $qp->parse("foo.bar>3");
+            $this->assertEquals("JSON_UNQUOTE(JSON_EXTRACT( nodes.data, '$.foo.bar')) > 3",$result);
+            $result = $qp->parse("foo.bar <> 'bar\\'bar'");
+            $this->assertEquals("JSON_UNQUOTE(JSON_EXTRACT( nodes.data, '$.foo.bar')) <> 'bar\'bar'",$result);
+            $result = $qp->parse("foo.bar != 'bar\\'bar'");
+            $this->assertEquals("JSON_UNQUOTE(JSON_EXTRACT( nodes.data, '$.foo.bar')) != 'bar\'bar'",$result);
+            $result = $qp->parse("foo.bar !~ 'b%z' and bar.foo = 3");
+            $this->assertEquals("JSON_UNQUOTE(JSON_EXTRACT( nodes.data, '$.foo.bar')) not like 'b%z' and JSON_UNQUOTE(JSON_EXTRACT( nodes.data, '$.bar.foo')) = 3", $result);
+            $result = $qp->parse("(foo.bar !~ 'b%z' and bar.foo = 3)");
+            $this->assertEquals("( JSON_UNQUOTE(JSON_EXTRACT( nodes.data, '$.foo.bar')) not like 'b%z' and JSON_UNQUOTE(JSON_EXTRACT( nodes.data, '$.bar.foo')) = 3 )", $result);
+            $result = $qp->parse("(foo.bar !~ 'b%z' and bar.foo = 3) or nodes.path = '/'");
+            $this->assertEquals("( JSON_UNQUOTE(JSON_EXTRACT( nodes.data, '$.foo.bar')) not like 'b%z' and JSON_UNQUOTE(JSON_EXTRACT( nodes.data, '$.bar.foo')) = 3 ) or nodes.path = '/'", $result);
+            $result = $qp->parse("not(foo.bar = 'bar')");
+            $this->assertEquals("not ( JSON_UNQUOTE(JSON_EXTRACT( nodes.data, '$.foo.bar')) = 'bar' )", $result);
         }
 
 
         function testMaliciousQueries()
         {
             $qp = new \arc\store\PSQLQueryParser(array('\arc\store','tokenizer'));
-            $this->expectException(LogicException::class);
+            $this->expectException(\LogicException::class);
             $result = $qp->parse("nodes.path=''/'");
-            echo $result."\n";
         }
 
         function testStoreParseError()
@@ -111,6 +139,7 @@
             $qp = new \arc\store\PSQLQueryParser(array('\arc\store','tokenizer'));
             $this->expectException(\LogicException::class);
             $result = $qp->parse("just_a_name_with_1_number");
+            echo $result."\n";
         }
 
         function testStoreParseParenthesisError()

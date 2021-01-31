@@ -28,7 +28,7 @@
                 $result = $q->execute($args);
                 $data = $q->fetch(\PDO::FETCH_ASSOC);
                 if (!$data) {
-                    yield $data;
+                    return $data;
                 }
                 while ($data) {
                     $value = (object) $data;

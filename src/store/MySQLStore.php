@@ -4,7 +4,7 @@ namespace arc\store;
 /*
 TODO: implement links
 */
-final class MySQLStore {
+final class MySQLStore implements Store {
 
     private $db;
     private $queryParser;
@@ -13,9 +13,9 @@ final class MySQLStore {
 
     /**
      * MySQLStore constructor.
-     * @param null $db
-     * @param null $queryParser
-     * @param null $resultHandler
+     * @param \PDO $db
+     * @param callable $queryParser
+     * @param callable $resultHandler
      * @param string $path
      */
     public function __construct($db = null, $queryParser = null, $resultHandler = null, $path = '/')
@@ -201,43 +201,6 @@ EOF;
             ':parent' => $parent,
             ':name' => $name
         ]);
-    }
-
-    public static function defaultResultHandler($db)
-    {
-        return function($query, $args) use ($db) {
-            $q = $db->prepare('select * from nodes where '.$query);
-            $result = $q->execute($args);
-            $dataset = [];
-            while ( $data = $q->fetch(\PDO::FETCH_ASSOC) ) {
-                $value = (object) $data;
-                $value->data = json_decode($value->data);
-                $value->ctime = strtotime($value->ctime);
-                $value->mtime = strtotime($value->mtime);
-                $path = $value->parent.$value->name.'/';
-                $dataset[$path] = $value;
-            }
-            return $dataset;
-        };
-    }
-
-    public static function generatorResultHandler($db)
-    {
-        return function($query, $args) use ($db) {
-            $q = $db->prepare('select * from nodes where '.$query);
-            $result = $q->execute($args);
-            $data = $q->fetch(\PDO::FETCH_ASSOC);
-            while ($data) {
-                $value = (object) $data;
-                $value->data = json_decode($value->data);
-                $value->ctime = strtotime($value->ctime);
-                $value->mtime = strtotime($value->mtime);
-                $path = $value->path;
-                yield $path => $value;
-                $data = $q->fetch(\PDO::FETCH_ASSOC);
-            }
-            if (false) { yield; } // this makes sure PHP sees this function as a generator
-        };
     }
 
 }

@@ -28,8 +28,18 @@ Or just use this package:
 
 ## Usage
 
+Example DSN for PostgreSQL:
 ```php
-    $store = \arc\store::connect('pgsql:host=localhost;port=5432;dbname=arcstore;user=arcstore;password=arcstore');
+	$dsn = 'pgsql:host=localhost;dbname=arcstore;user=arcstore;password=arcstore';
+```
+
+Example DSN for MySQL:
+```php
+	$dsn = 'mysql:host=localhost;dbname=arcstore;user=arcstore;password=arcstore';
+```
+
+```php
+    $store = \arc\store::connect($dsn);
     $store->initialize();
     if ($store->save(\arc\prototype::create(["foo" => "bar"]), "/foo/")) {
         $objects = $store->ls('/');
@@ -38,6 +48,7 @@ Or just use this package:
 ```
 
 This will show an array with one object, with parent '/', name 'foo', and a single property 'foo' => 'bar'.
+
 
 ## What is ARC\Store?
 
@@ -50,12 +61,12 @@ Because of its tree structure, ARC\Store integrates well with other ARC Componen
 ## methods
 
 ### \arc\store::connect
-	(\arc\store\PSQLStore) \arc\store::connect( (string) $dsn, (callable) $resultHandler=null)
+	(\arc\store\Store) \arc\store::connect( (string) $dsn, (callable) $resultHandler=null)
 
 This method creates a new PSQLStore instance and connects it to a PostgreSQL database. Optionally you can pass your own resultHandler function. The PSQLStore class contains two static functions predefined for this:
-- \arc\store\PSQLStore::defaultResultHandler
-- \arc\store\PSQLStore::generatorResultHandler
-The result handler is called with a compiled SQL query where clause and arguments and must execute this and return the results.
+- \arc\store\ResultHandlers::getDBHandler
+- \arc\store\ResultHandlers::getDBGeneratorHandler
+These functions take 1 argument, the database connection, and return a result handler function. The result handler is called with a compiled SQL query where clause and arguments and must execute this and return the results.
 
 ### \arc\store::disconnect
 	(void) \arc\store::disconnect()
@@ -134,12 +145,12 @@ Returns the object with the give path, or null.
 
 Returns true if an object with the given path exists.
 
-### \arc\store\PSQLStore->save
+### \arc\store\Store->save
 	(bool) $store->save( (object) $data, (string) $path = '')
 
 Saves the object data at the given path. Returns true on success or false on failure.
 
-### \arc\store\PSQLStore->delete
+### \arc\store\Store->delete
 	(bool) $store->delete((string) $path = '')
 
 Deletes the object with the given path and all its children. It will never remove the root object. If you don't pass an argument, it will use the current path set in the store instance. Returns true on success or false on failure.

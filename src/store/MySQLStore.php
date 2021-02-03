@@ -21,6 +21,7 @@ final class MySQLStore {
     public function __construct($db = null, $queryParser = null, $resultHandler = null, $path = '/')
     {
         $this->db            = $db;
+        $this->db->setAttribute(\PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, false);
         $this->queryParser   = $queryParser;
         $this->resultHandler = $resultHandler;
         $this->path          = \arc\path::collapse($path);

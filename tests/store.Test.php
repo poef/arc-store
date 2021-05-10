@@ -23,15 +23,14 @@
 
         public static function setupBeforeClass() : void
         {            
-/*
+
             self::$tree = \arc\tree::expand([]);
             self::$store = new \arc\store\TreeStore( 
                 self::$tree,
                 new \arc\store\TreeQueryParser( array('\arc\store','tokenizer')),
                 array('\arc\store\TreeStore','getResultHandler')
             );
-*/
-            self::$store = \arc\store::connect(self::$dns[0]);
+//            self::$store = \arc\store::connect(self::$dns[0]);
             self::$store->initialize();
         }
 
@@ -172,10 +171,12 @@
 
         public static function tearDownAfterClass() :void
         {
+/*
             $db = new PDO(self::$dns[0]);
             $db->exec('drop table nodes;');
             $db->exec('drop table objects;');
             $db->exec('drop table links;');
+*/
         }
     
     }

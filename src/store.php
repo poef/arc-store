@@ -158,9 +158,7 @@ final class store {
             )
             |
             (?<string>
-                (?<quote>(?<![\\\\])[\'])
-                (?<content>(?:.(?!(?<![\\\\])(?P=quote)))*.?)
-                (?P=quote) 
+                 '(?:\\.|[^\\'])*' 
             )
             |
             (?<parenthesis_open>
@@ -170,20 +168,20 @@ final class store {
             (?<parenthesis_close>
                 \)
             )
-)/x
+)/xi
 REGEX;
         do {
             $result = preg_match($token, $query, $matches, PREG_OFFSET_CAPTURE);
             if ($result) {
-                $query = substr($query, strlen($matches[0][0]));
-                // todo: swap filters, first remove numeric keys
+                $value  = $matches[0][0];
+                $offset = $matches[0][1];
+                $query = substr($query, strlen($value) + $offset);
                 yield array_filter(
-                    array_filter($matches, function($match) {
-                        return $match[0];
-                    }),
-                    function($key) {
-                        return !is_int($key);
-                    }, ARRAY_FILTER_USE_KEY
+                    $matches,
+                    function($val, $key) {
+                        return !is_int($key) && $val[0];
+                    },
+                    ARRAY_FILTER_USE_BOTH
                 );
             }
         } while($result);

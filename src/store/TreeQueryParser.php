@@ -19,7 +19,7 @@ final class TreeQueryParser {
     {
         $indent   = 0;
         $part     = '';
-        $check    = '';
+        $fn       = [];
         $currentCheck = [];
         $position = 0;
         $expect   = 'name|parenthesis_open|not';
@@ -35,9 +35,9 @@ final class TreeQueryParser {
                 case 'number':
                 case 'string':
                     if (strpos($part, '{placeholder}')!==false) {
-                        $check .= str_replace('{placeholder}', $token, $part);
+                        $fn[] = str_replace('{placeholder}', $token, $part);
                     } else {
-                        $check .= $part.$token;
+                        $fn[] = $part.$token;
                     }
                     $part   = '';
                     $expect = 'operator|parenthesis_close';
@@ -93,27 +93,27 @@ final class TreeQueryParser {
                     $expect = 'number|string';
                 break;
                 case 'not':
-                    $check .= '!';
+                    $fn[]   = '!';
                     $expect = 'name|parenthesis_open';
                 break;
                 case 'operator':
                     switch($token) {
                         case 'and':
-                            $check .= ' && ';
+                            $fn[] = '&&';
                         break;
                         case 'or':
-                            $check .= ' || ';
+                            $fn[] = '||';
                         break;
                     }
                     $expect = 'name|parenthesis_open|not';
                 break;
                 case 'parenthesis_open':
-                    $check .= $token;
+                    $fn[]   = $token;
                     $indent++;
                     $expect = 'name|parenthesis_open|not';
                 break;
                 case 'parenthesis_close':
-                    $check .= $token;
+                    $fn[]   = $token;
                     $indent--;
                     if ( $indent>0 ) {
                         $expect = 'operator|parenthesis_close';
@@ -130,7 +130,13 @@ final class TreeQueryParser {
             $position -= strlen($token);
             throw new \LogicException('parse error at '.$position.': '.(substr($query,0, $position)." --> ".substr($query,$position)));
         } else {
-            return $check;
+            $fn = implode(' ',$fn);
+                $like = function($haystack, $needle) {
+                $re = str_replace('%', '.*', $needle);
+                return preg_match('|'.$re.'|i', $haystack);
+            };
+            $script = 'return function($node) use ($like) { return '.$fn.'; };';
+            return eval($script);
         }
     }
 

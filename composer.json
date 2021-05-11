@@ -13,7 +13,7 @@
 	],
 	"require": {
 		"php": ">=7",
-		"arc/base": "dev-master",
+		"arc/base": ">=3.0.3",
 		"arc/prototype": ">=3.0.1"
 	},
 	"autoload": {
